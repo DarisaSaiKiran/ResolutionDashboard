@@ -1,0 +1,32 @@
+body, html {
+    height: 100%;
+  }
+
+.bg {
+    height: 100vh;
+    
+    background-position:center;
+    background-repeat: no-repeat;
+    background-size:cover;
+  }
+  
+.color-nav{
+  background-color: rgb(32, 74, 162);
+}
+
+.nav-link{
+  font-family: 'Roboto', sans-serif;
+  color: #c9c1b9 !important;
+}
+.navbar-custom {
+  height: 50px;
+  /* background-color:rgba(114, 130, 49, 0.521); */
+}
+.card-body-min-height {
+  min-height: 500px; 
+}
+.navbar-with-line {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 10px; 
+  margin-bottom: 10px; 
+}

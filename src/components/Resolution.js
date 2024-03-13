@@ -1,8 +1,8 @@
 import React from "react";
-import { Card, Container, DropdownButton, Dropdown } from "react-bootstrap";
-// import UserDashboard from "./UserDashboard";
-import DatePicker from "react-datepicker";
+import { Card, Container, DropdownButton, Dropdown, Button } from "react-bootstrap";
+import UserDashboard from "./UserDashboard";
 import "react-datepicker/dist/react-datepicker.css";
+import DatePicker from "react-datepicker";
 
 class Resolution extends React.Component {
   constructor(props) {
@@ -12,14 +12,20 @@ class Resolution extends React.Component {
       resolutionNotes: [],
       filteredResolutionNotes: [],
       currentPage: 1,
-      resolutionNotesPerPage: 10,
+      resolutionNotesPerPage: 1000,
       noResolutionNotes: false,
       selectedArea: "",
-      areas: [], 
+      areas: [],
+      allAreas: [], 
+      startDate: null,
+      endDate: null,
     };
 
     this.fetchResolutionNotes = this.fetchResolutionNotes.bind(this);
     this.handleAreaFilter = this.handleAreaFilter.bind(this);
+    this.handleStartDateChange = this.handleStartDateChange.bind(this);
+    this.handleEndDateChange = this.handleEndDateChange.bind(this);
+    this.resetData = this.resetData.bind(this);
   }
 
   componentDidMount() {
@@ -36,11 +42,22 @@ class Resolution extends React.Component {
           filteredResolutionNotes: data,
           noResolutionNotes: data.length === 0,
           areas: areas,
+          allAreas: areas, 
         });
       })
       .catch(error => {
         console.error('Error fetching resolution notes:', error);
       });
+  }
+
+  resetData() {
+    this.setState({
+      selectedArea: "",
+      currentPage: 1,
+      filteredResolutionNotes: this.state.resolutionNotes,
+      startDate: null,
+      endDate: null,
+    });
   }
 
   handleAreaFilter(area) {
@@ -58,6 +75,43 @@ class Resolution extends React.Component {
     });
   }
 
+  handleStartDateChange(date) {
+    this.setState({
+      startDate: date,
+    }, this.filterResolutionNotes);
+  }
+
+  handleEndDateChange(date) {
+    this.setState({
+      endDate: date,
+    }, this.filterResolutionNotes);
+  }
+
+  filterResolutionNotes() {
+    const { resolutionNotes, startDate, endDate, allAreas } = this.state;
+    let filteredNotes = resolutionNotes;
+
+    if (startDate && endDate) {
+      filteredNotes = resolutionNotes.filter(note => {
+        const noteDate = new Date(note.Opened);
+        return noteDate >= startDate && noteDate <= endDate;
+      });
+
+      const areas = [...new Set(filteredNotes.map(note => note.Area))];
+      this.setState({
+        filteredResolutionNotes: filteredNotes,
+        currentPage: 1,
+        areas: areas,
+      });
+    } else {
+      this.setState({
+        filteredResolutionNotes: resolutionNotes,
+        currentPage: 1,
+        areas: allAreas, 
+      });
+    }
+  }
+
   render() {
     const { filteredResolutionNotes, currentPage, resolutionNotesPerPage, noResolutionNotes, selectedArea, areas } = this.state;
     const lastIndex = currentPage * resolutionNotesPerPage;
@@ -68,38 +122,66 @@ class Resolution extends React.Component {
     return (
       <div>
         <div>
-          {/* <UserDashboard /> */}
+          <UserDashboard />
           <Container >
             <br />
             <Card >
-              <Card.Header className="fw-bold p-2 mb-2 bg-primary text-center text-white">
-                RESOLUTION NOTES
-              </Card.Header>
               <Card.Body className="card-body-min-height" >
                 {noResolutionNotes ? (
                   <p className="text-center fw-bold">No resolution notes available.</p>
                 ) : (
                   <>
-                    <div className="d-flex justify-content-end mb-3">
-                      <DropdownButton
-                        title={selectedArea !== "" ? `Filter: ${selectedArea}` : "Filter by Area"}
-                        variant="primary"
-                        onSelect={this.handleAreaFilter}
-                      >
-                        <Dropdown.Item eventKey="All">All</Dropdown.Item>
-                        {areas.map((area, index) => (
-                          <Dropdown.Item key={index} eventKey={area}>{area}</Dropdown.Item>
-                        ))}
-                      </DropdownButton>
+                    <div className="d-flex justify-content-between mb-3">
+                      <div>
+                        <DropdownButton
+                          title={selectedArea !== "" ? `Filter: ${selectedArea}` : "Filter by Area"}
+                          variant="primary"
+                          onSelect={this.handleAreaFilter}
+                        >
+                          <Dropdown.Item eventKey="All">All</Dropdown.Item>
+                          {areas.map((area, index) => (
+                            <Dropdown.Item key={index} eventKey={area}>{area}</Dropdown.Item>
+                          ))}
+                        </DropdownButton>
+                      </div>
+                      <div className="col-sm-3 form-group">
+                        <DatePicker
+                          className="form-control"
+                          dateFormat="dd-MM-yyyy"
+                          selected={this.state.startDate}
+                          placeholderText="Select From Date"
+                          showPopperArrow={false}
+                          onChange={this.handleStartDateChange}
+                          maxDate={this.state.endDate ? this.state.endDate : null}
+                        />
+                      </div>
+                      <div className="col-sm-3 form-group">
+                        <DatePicker
+                          className="form-control"
+                          dateFormat="dd-MM-yyyy"
+                          selected={this.state.endDate}
+                          placeholderText="Select To Date"
+                          showPopperArrow={false}
+                          onChange={this.handleEndDateChange}
+                          minDate={this.state.startDate ? this.state.startDate : null}
+                        />
+                      </div>
+                      <div>
+                        <Button onClick={this.resetData}>Reset</Button>
+                      </div>
                     </div>
-                    <table className="table text-center table-white table-bordered ">
+                    <table className="table text-center table-bordered ">
                       <thead className="table-dark">
                         <tr className="align-center">
                           <th scope="col">Incident</th>
                           <th scope="col">Opened</th>
                           <th scope="col">Short Description</th>
-                          <th scope="col">Resolution Notes</th>
+                          <th scope="col">Country</th>
+                          <th scope="col">Priority</th>
                           <th scope="col">Area</th>
+                          <th scope="col">Category</th>
+                          <th scope="col">Sub Category</th>
+                          <th scope="col">RCA</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -108,8 +190,12 @@ class Resolution extends React.Component {
                             <td>{note.Incident}</td>
                             <td>{note.Opened}</td>
                             <td>{note["Short description"]}</td>
-                            <td>{note["Resolution Notes"]}</td>
+                            <td>{note.Country}</td>
+                            <td>{note.Priority}</td>
                             <td>{note.Area}</td>
+                            <td>{note.Category}</td>
+                            <td>{note.Subcategory}</td>
+                            <td>{note.RCA}</td>
                           </tr>
                         ))}
                       </tbody>
