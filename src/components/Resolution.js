@@ -1,9 +1,12 @@
 import React from "react";
 import { Card, Container, DropdownButton, Dropdown, Button } from "react-bootstrap";
+import { Link } from 'react-router-dom';
+
 import UserDashboard from "./UserDashboard";
 import "react-datepicker/dist/react-datepicker.css";
 import DatePicker from "react-datepicker";
-
+import { faSignIn } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 class Resolution extends React.Component {
   constructor(props) {
     super(props);
@@ -16,9 +19,10 @@ class Resolution extends React.Component {
       noResolutionNotes: false,
       selectedArea: "",
       areas: [],
-      allAreas: [], 
+      allAreas: [],
       startDate: null,
       endDate: null,
+      areaCounts: {},
     };
 
     this.fetchResolutionNotes = this.fetchResolutionNotes.bind(this);
@@ -33,16 +37,21 @@ class Resolution extends React.Component {
   }
 
   fetchResolutionNotes() {
-    fetch('http://itinbac-dw0477:7600/resolution_notes')
+    fetch('http://itinbac-dw0014:7600/resolution_notes')
       .then(response => response.json())
       .then(data => {
         const areas = [...new Set(data.map(note => note.Area))];
+        const areaCounts = areas.reduce((acc, curr) => {
+          acc[curr] = data.filter(note => note.Area === curr).length;
+          return acc;
+        }, {});
         this.setState({
           resolutionNotes: data,
           filteredResolutionNotes: data,
           noResolutionNotes: data.length === 0,
           areas: areas,
-          allAreas: areas, 
+          allAreas: areas,
+          areaCounts: areaCounts,
         });
       })
       .catch(error => {
@@ -57,9 +66,12 @@ class Resolution extends React.Component {
       filteredResolutionNotes: this.state.resolutionNotes,
       startDate: null,
       endDate: null,
+      area:null
     });
   }
 
+ 
+  
   handleAreaFilter(area) {
     const { resolutionNotes } = this.state;
     let filteredNotes = [];
@@ -68,10 +80,17 @@ class Resolution extends React.Component {
     } else {
       filteredNotes = resolutionNotes.filter(note => note.Area === area);
     }
+    const areas = [...new Set(resolutionNotes.map(note => note.Area))];
+    const areaCounts = areas.reduce((acc, curr) => {
+      acc[curr] = resolutionNotes.filter(note => note.Area === curr).length;
+      return acc;
+    }, {});
+
     this.setState({
       selectedArea: area,
       filteredResolutionNotes: filteredNotes,
       currentPage: 1,
+      areaCounts: area === "All" ? {} : areaCounts,
     });
   }
 
@@ -88,32 +107,32 @@ class Resolution extends React.Component {
   }
 
   filterResolutionNotes() {
-    const { resolutionNotes, startDate, endDate, allAreas } = this.state;
+    const { resolutionNotes, startDate, endDate } = this.state;
     let filteredNotes = resolutionNotes;
-
+  
     if (startDate && endDate) {
       filteredNotes = resolutionNotes.filter(note => {
         const noteDate = new Date(note.Opened);
         return noteDate >= startDate && noteDate <= endDate;
       });
-
-      const areas = [...new Set(filteredNotes.map(note => note.Area))];
-      this.setState({
-        filteredResolutionNotes: filteredNotes,
-        currentPage: 1,
-        areas: areas,
-      });
-    } else {
-      this.setState({
-        filteredResolutionNotes: resolutionNotes,
-        currentPage: 1,
-        areas: allAreas, 
-      });
     }
+  
+    const areas = [...new Set(filteredNotes.map(note => note.Area))];
+    const areaCounts = areas.reduce((acc, curr) => {
+      acc[curr] = filteredNotes.filter(note => note.Area === curr).length;
+      return acc;
+    }, {});
+  
+    this.setState({
+      filteredResolutionNotes: filteredNotes,
+      currentPage: 1,
+      areas: areas,
+      areaCounts: areaCounts,
+    });
   }
-
+  
   render() {
-    const { filteredResolutionNotes, currentPage, resolutionNotesPerPage, noResolutionNotes, selectedArea, areas } = this.state;
+    const { filteredResolutionNotes, currentPage, resolutionNotesPerPage, noResolutionNotes, selectedArea, areas, areaCounts } = this.state;
     const lastIndex = currentPage * resolutionNotesPerPage;
     const firstIndex = lastIndex - resolutionNotesPerPage;
     const currentResolutionNotes = filteredResolutionNotes.slice(firstIndex, lastIndex);
@@ -133,16 +152,26 @@ class Resolution extends React.Component {
                   <>
                     <div className="d-flex justify-content-between mb-3">
                       <div>
-                        <DropdownButton
-                          title={selectedArea !== "" ? `Filter: ${selectedArea}` : "Filter by Area"}
-                          variant="primary"
-                          onSelect={this.handleAreaFilter}
-                        >
-                          <Dropdown.Item eventKey="All">All</Dropdown.Item>
-                          {areas.map((area, index) => (
-                            <Dropdown.Item key={index} eventKey={area}>{area}</Dropdown.Item>
-                          ))}
-                        </DropdownButton>
+                      <DropdownButton
+ title={
+  selectedArea === "All"
+    ? `Filter: All (${filteredResolutionNotes.length})`
+    : selectedArea
+    ? `Filter: ${selectedArea} (${areaCounts[selectedArea] || 0})`
+    : "Filter by Area"
+}
+
+
+  
+  variant="primary"
+  onSelect={this.handleAreaFilter}
+>
+  <Dropdown.Item eventKey="All">All</Dropdown.Item>
+  {areas.map((area, index) => (
+    <Dropdown.Item key={index} eventKey={area}>{area}</Dropdown.Item>
+  ))}
+</DropdownButton>
+
                       </div>
                       <div className="col-sm-3 form-group">
                         <DatePicker
@@ -167,8 +196,10 @@ class Resolution extends React.Component {
                         />
                       </div>
                       <div>
-                        <Button onClick={this.resetData}>Reset</Button>
-                      </div>
+                        <Button onClick={this.resetData}>Reset</Button>{ }
+                        <Link to="/view" className="text-dark fw-bold">
+                            <FontAwesomeIcon icon={faSignIn} />
+                        </Link>                      </div>
                     </div>
                     <table className="table text-center table-bordered ">
                       <thead className="table-dark">

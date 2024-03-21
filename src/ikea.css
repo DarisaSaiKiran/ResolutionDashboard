@@ -30,3 +30,11 @@ body, html {
   padding-bottom: 10px; 
   margin-bottom: 10px; 
 }
+.search-bar {
+  width: 50px;
+  height:2px;
+}
+
+.search-button {
+  height: 38px; 
+}
